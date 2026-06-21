@@ -46,32 +46,7 @@ const GroupHeader = () => (
         borderRadius: "50%",
       }}
     />
-    <div style={{ position: "relative", zIndex: 2 }}>
-      <p
-        style={{
-          fontSize: 28,
-          fontWeight: 800,
-          color: "#FFFFFF",
-          letterSpacing: "-0.3px",
-          margin: 0,
-          lineHeight: 1.2,
-        }}
-      >
-        My Share-Out
-      </p>
-      <p
-        style={{
-          fontSize: 12,
-          fontWeight: 500,
-          color: "#A7F3D0",
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          margin: 0,
-        }}
-      >
-        Member Dashboard
-      </p>
-    </div>
+    <div style={{ position: "relative", zIndex: 2 }}></div>
   </div>
 );
 
