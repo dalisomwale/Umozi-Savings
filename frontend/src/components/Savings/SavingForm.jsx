@@ -34,7 +34,7 @@ const SavingForm = () => {
   const [recentSavings, setRecentSavings] = useState([]);
   const [totalSavings, setTotalSavings] = useState(0);
   const [fetchingData, setFetchingData] = useState(false);
-  const [showForm, setShowForm] = useState(false); // controls form visibility
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     if (role === "member" && !storedMemberId && groupId) {
