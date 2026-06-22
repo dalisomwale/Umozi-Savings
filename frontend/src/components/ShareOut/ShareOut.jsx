@@ -46,7 +46,6 @@ const GroupHeader = () => (
         borderRadius: "50%",
       }}
     />
-    <div style={{ position: "relative", zIndex: 2 }}></div>
   </div>
 );
 
@@ -128,7 +127,6 @@ const ShareOut = () => {
     cycleName: null,
     paidDate: null,
   });
-  const [history, setHistory] = useState([]);
   const [activities, setActivities] = useState([]);
 
   const toNumber = (val) => (isNaN(Number(val)) ? 0 : Number(val));
@@ -139,13 +137,11 @@ const ShareOut = () => {
     if (!groupId) return;
     setLoading(true);
     try {
-      const [summaryRes, historyRes, activitiesRes] = await Promise.all([
+      const [summaryRes, activitiesRes] = await Promise.all([
         api.get(`/share-out/member/summary/${groupId}`),
-        api.get(`/share-out/member/history/${groupId}`),
         api.get(`/share-out/member/activities/${groupId}`),
       ]);
       setSummary(summaryRes.data);
-      setHistory(historyRes.data);
       setActivities(activitiesRes.data);
     } catch (error) {
       toast.error("Failed to load share-out data");
@@ -213,112 +209,6 @@ const ShareOut = () => {
             {formatMoney(summary.outstandingLoan)}
           </p>
         </div>
-      </div>
-
-      {/* Payment Status */}
-      <div className="mx-4 mt-3">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center">
-          <div>
-            <p className="text-gray-500 text-xs uppercase tracking-wide">
-              Payment Status
-            </p>
-            <p className="text-lg font-semibold capitalize">
-              {summary.paymentStatus}
-            </p>
-            {summary.cycleName && (
-              <p className="text-xs text-gray-400">
-                Cycle: {summary.cycleName}
-              </p>
-            )}
-          </div>
-          <div
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              summary.paymentStatus === "paid"
-                ? "bg-green-100 text-green-700"
-                : summary.paymentStatus === "processing"
-                  ? "bg-blue-100 text-blue-700"
-                  : summary.paymentStatus === "No cycle"
-                    ? "bg-gray-100 text-gray-700"
-                    : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {summary.paymentStatus === "paid"
-              ? "Paid"
-              : summary.paymentStatus === "processing"
-                ? "Processing"
-                : summary.paymentStatus === "No cycle"
-                  ? "No Cycle"
-                  : summary.paymentStatus === "active"
-                    ? "Active"
-                    : summary.paymentStatus === "closed"
-                      ? "Closed"
-                      : summary.paymentStatus === "calculated"
-                        ? "Calculated"
-                        : summary.paymentStatus === "approved"
-                          ? "Approved"
-                          : summary.paymentStatus === "pending"
-                            ? "Pending"
-                            : summary.paymentStatus}
-          </div>
-        </div>
-      </div>
-
-      {/* History */}
-      <div className="bg-white rounded-xl mx-4 mt-4 p-5 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-3">
-          <FiClock className="text-emerald-500" size={18} />
-          <h2 className="text-lg font-semibold text-gray-700">
-            Share-Out History
-          </h2>
-        </div>
-        {history.length === 0 ? (
-          <p className="text-gray-400 text-center py-6 text-sm">
-            No history yet
-          </p>
-        ) : (
-          <div className="space-y-4">
-            {history.map((item) => (
-              <div
-                key={item.cycle_id}
-                className="flex justify-between items-start border-b border-gray-100 pb-3 last:border-0"
-              >
-                <div>
-                  <p className="font-medium text-gray-800">{item.cycle_name}</p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(item.start_date).toLocaleDateString()} -{" "}
-                    {item.end_date
-                      ? new Date(item.end_date).toLocaleDateString()
-                      : "Ongoing"}
-                  </p>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      item.status === "paid" || item.status === "completed"
-                        ? "bg-green-100 text-green-700"
-                        : item.status === "approved"
-                          ? "bg-blue-100 text-blue-700"
-                          : item.status === "calculated"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-emerald-600">
-                    {formatMoney(item.net_share_out)}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Profit: {formatMoney(item.profit_earned)}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Gross: {formatMoney(item.gross_share_out)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Recent Activities */}

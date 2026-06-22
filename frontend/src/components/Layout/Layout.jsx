@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
-  FiDollarSign,
+  FiTrendingUp,
   FiBookOpen,
   FiBarChart2,
   FiLogOut,
@@ -87,7 +87,7 @@ const Layout = () => {
 
   if (isAdmin) {
     navItems.push(
-      { path: "/app/savings/all", label: "Savings", icon: FiDollarSign },
+      { path: "/app/savings/all", label: "Savings", icon: FiTrendingUp },
       { path: "/app/loans", label: "Loans", icon: FiBookOpen },
       { path: "/app/fines", label: "Fines", icon: FiAlertTriangle },
       { path: "/app/share-outs", label: "Share-Outs", icon: FiPieChart },
@@ -95,7 +95,7 @@ const Layout = () => {
     );
   } else {
     navItems.push(
-      { path: "/app/savings/add", label: "Savings", icon: FiDollarSign },
+      { path: "/app/savings/add", label: "Savings", icon: FiTrendingUp },
       { path: "/app/loans", label: "Loans", icon: FiBookOpen },
       { path: "/app/fines", label: "Fines", icon: FiAlertTriangle },
       { path: "/app/share-out", label: "Share-Out", icon: FiPieChart },
@@ -160,7 +160,7 @@ const Layout = () => {
             </p>
           </div>
 
-          {/* 🔥 Simple profile icon – no wrapper, only on member dashboard */}
+          {/* Profile icon – only on member dashboard */}
           {isMemberDashboard && (
             <FiUser
               color="#fff"
@@ -425,7 +425,7 @@ const Layout = () => {
               "Easy Banking"}
           </h1>
 
-          {/* 🔥 Simple profile link – no wrapper, only on member dashboard */}
+          {/* Profile link – only on member dashboard */}
           {isMemberDashboard && (
             <div
               onClick={() => navigate("/app/profile")}

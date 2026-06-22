@@ -16,7 +16,7 @@ import {
 import api from "../../services/api";
 import toast from "react-hot-toast";
 
-// ─── Shared components (match Savings & Loans styling) ────────────────
+// ─── Shared components ────────────────────────────────────────────────
 const GroupHeader = () => {
   const groupName = localStorage.getItem("selectedGroupName") || "My Group";
   const role = localStorage.getItem("selectedGroupRole");
@@ -52,40 +52,6 @@ const GroupHeader = () => {
           borderRadius: "50%",
         }}
       />
-      <div
-        style={{
-          position: "relative",
-          zIndex: 2,
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-        }}
-      >
-        <p
-          style={{
-            fontSize: 28,
-            fontWeight: 800,
-            color: "#FFFFFF",
-            letterSpacing: "-0.3px",
-            margin: 0,
-            lineHeight: 1.2,
-          }}
-        >
-          {groupName}
-        </p>
-        <p
-          style={{
-            fontSize: 12,
-            fontWeight: 500,
-            color: "#A7F3D0",
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            margin: 0,
-          }}
-        >
-          {role === "admin" ? "Fines Management" : "My Fines"}
-        </p>
-      </div>
     </div>
   );
 };
@@ -294,7 +260,6 @@ const Fines = () => {
     }
   };
 
-  // ── Admin pay handler ──
   const handlePayFine = async (fineId) => {
     try {
       await api.put(`/fines/pay/${fineId}`, {
@@ -302,14 +267,62 @@ const Fines = () => {
       });
       toast.success("Fine marked as paid");
       await loadAll();
-      // 🔥 Dispatch event to update dashboard if open
       window.dispatchEvent(new Event("fine-paid"));
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to pay fine");
     }
   };
 
-  // ── Member pay handler ──
+  const handleCreateRule = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post("/fines/rules", { groupId, ...ruleForm });
+      toast.success("Rule created");
+      setRuleForm({ name: "", description: "", amount: "", status: "active" });
+      await fetchRules();
+      // Notify dashboard if open
+      window.dispatchEvent(new Event("fine-paid"));
+    } catch (error) {
+      const msg = error.response?.data?.message || "Failed to create rule";
+      toast.error(msg);
+      console.error("Create rule error:", error.response?.data);
+    }
+  };
+
+  const handleUpdateRule = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/fines/rules/${editingRule.id}`, { ...ruleForm, groupId });
+      toast.success("Rule updated");
+      setEditingRule(null);
+      setRuleForm({ name: "", description: "", amount: "", status: "active" });
+      await fetchRules();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update rule");
+    }
+  };
+
+  const handleDeleteRule = async (ruleId) => {
+    if (!window.confirm("Delete this rule?")) return;
+    try {
+      await api.delete(`/fines/rules/${ruleId}`);
+      toast.success("Rule deleted");
+      await fetchRules();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete rule");
+    }
+  };
+
+  const handleEditRule = (rule) => {
+    setEditingRule(rule);
+    setRuleForm({
+      name: rule.name,
+      description: rule.description || "",
+      amount: rule.amount,
+      status: rule.status,
+    });
+  };
+
   const handlePayClick = async (fineId) => {
     try {
       await api.put(`/fines/pay/${fineId}`, {
@@ -317,19 +330,15 @@ const Fines = () => {
       });
       toast.success("Fine paid successfully!");
       await loadAll();
-      // 🔥 Dispatch event to update dashboard if open
       window.dispatchEvent(new Event("fine-paid"));
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to pay fine");
     }
   };
 
-  // ... rest of the handlers (createRule, updateRule, deleteRule) remain the same ...
-  // (I'll skip repeating them for brevity, but they are unchanged)
-
-  // The rest of the component (member view and admin view) is identical to the previous version,
-  // except that in the member view, the handlePayClick function now dispatches the event.
-  // I'll include the full return for completeness.
+  const toggleExpand = (fineId) => {
+    setExpandedFineId(expandedFineId === fineId ? null : fineId);
+  };
 
   if (loading) {
     return (
@@ -339,17 +348,13 @@ const Fines = () => {
     );
   }
 
-  // ── Member View ──
+  // ──────────────────────────────────────────────────────────────
+  // MEMBER VIEW – Expandable fines list with pay button
+  // ──────────────────────────────────────────────────────────────
   if (role === "member") {
     const totalFines = toNumber(memberStats.total_fines);
     const outstanding = toNumber(memberStats.outstanding);
     const paid = toNumber(memberStats.paid_fines);
-
-    const toggleExpand = (fineId) => {
-      setExpandedFineId(expandedFineId === fineId ? null : fineId);
-    };
-
-    // handlePayClick is defined above with dispatch
 
     return (
       <div>
@@ -388,7 +393,7 @@ const Fines = () => {
                         key={fine.id}
                         className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                       >
-                        {/* Header */}
+                        {/* Header – always visible */}
                         <div
                           className="flex justify-between items-center p-4 cursor-pointer bg-white hover:bg-gray-50"
                           onClick={() => toggleExpand(fine.id)}
@@ -474,7 +479,7 @@ const Fines = () => {
                                   }}
                                   className="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition flex items-center gap-2"
                                 >
-                                  <FiCheckCircle size={16} /> Pay Now
+                                  Pay Now
                                 </button>
                               )}
                             </div>
@@ -492,7 +497,9 @@ const Fines = () => {
     );
   }
 
-  // ── Admin View ── (unchanged from previous version, but handlePayFine includes dispatch)
+  // ──────────────────────────────────────────────────────────────
+  // ADMIN VIEW (matches AllSavings, MemberList styling)
+  // ──────────────────────────────────────────────────────────────
   return (
     <div className="max-w-7xl mx-auto px-2 space-y-5">
       {/* Stats cards */}
@@ -561,7 +568,7 @@ const Fines = () => {
         </button>
       </div>
 
-      {/* Tab content – unchanged, but handlePayFine inside table now dispatches event */}
+      {/* Tab Content */}
       {activeTab === "fines" && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">

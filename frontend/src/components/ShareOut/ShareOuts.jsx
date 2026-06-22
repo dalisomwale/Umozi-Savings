@@ -22,133 +22,6 @@ import {
 import api from "../../services/api";
 import toast from "react-hot-toast";
 
-// ─── Header ─────────────────────────────────────────────────────────────
-const GroupHeader = () => (
-  <div
-    style={{
-      background: "#064E3B",
-      borderRadius: "0 0 2rem 2rem",
-      padding: "1.5rem 1.5rem 3.75rem",
-      position: "relative",
-      overflow: "hidden",
-    }}
-  >
-    <div
-      style={{
-        position: "absolute",
-        top: -40,
-        right: -40,
-        width: 180,
-        height: 180,
-        background: "rgba(255,255,255,0.05)",
-        borderRadius: "50%",
-      }}
-    />
-    <div
-      style={{
-        position: "absolute",
-        bottom: -60,
-        left: "30%",
-        width: 240,
-        height: 240,
-        background: "rgba(255,255,255,0.04)",
-        borderRadius: "50%",
-      }}
-    />
-    <div style={{ position: "relative", zIndex: 2 }}>
-      <p
-        style={{
-          fontSize: 28,
-          fontWeight: 800,
-          color: "#FFFFFF",
-          letterSpacing: "-0.3px",
-          margin: 0,
-          lineHeight: 1.2,
-        }}
-      >
-        Share-Out Management
-      </p>
-      <p
-        style={{
-          fontSize: 12,
-          fontWeight: 500,
-          color: "#A7F3D0",
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          margin: 0,
-        }}
-      >
-        Admin Dashboard
-      </p>
-    </div>
-  </div>
-);
-
-const HeroCard = ({ label, amount, sub, icon: Icon, color = "#065F46" }) => (
-  <div
-    style={{
-      padding: "0 1rem",
-      marginTop: "-1.75rem",
-      position: "relative",
-      zIndex: 2,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        border: "0.5px solid #E5E7EB",
-        borderRadius: 16,
-        padding: "1.25rem 1.5rem",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.10)",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <div>
-        <p
-          style={{
-            fontSize: 11,
-            color: "#6B7280",
-            fontWeight: 500,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            margin: 0,
-          }}
-        >
-          {label}
-        </p>
-        <p
-          style={{
-            fontSize: 34,
-            fontWeight: 700,
-            color: color,
-            margin: "4px 0 2px",
-            lineHeight: 1,
-          }}
-        >
-          {amount}
-        </p>
-        <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0 }}>{sub}</p>
-      </div>
-      <div
-        style={{
-          background: "#D1FAE5",
-          borderRadius: "50%",
-          width: 50,
-          height: 50,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon color="#065F46" size={22} />
-      </div>
-    </div>
-  </div>
-);
-
 const ShareOuts = () => {
   const navigate = useNavigate();
   const groupId = localStorage.getItem("selectedGroupId");
@@ -361,78 +234,48 @@ const ShareOuts = () => {
 
   // ── Render ──
 
+  const profit = stats.totalInterest + stats.totalFines;
+
   return (
     <div className="max-w-7xl mx-auto px-2 space-y-5">
-      <GroupHeader />
-      <HeroCard
-        label="Total Share-Out Fund"
-        amount={formatMoney(stats.totalFund)}
-        sub={`Profit: ${formatMoney(stats.totalInterest + stats.totalFines)} · Eligible: ${stats.eligibleMembers}`}
-        icon={FiPieChart}
-      />
+      {/* Total Share-Out Fund Card – no subtext */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+        <p className="text-gray-500 text-sm font-medium">
+          Total Share-Out Fund
+        </p>
+        <p className="text-3xl font-bold text-emerald-700 mt-2">
+          {formatMoney(stats.totalFund)}
+        </p>
+      </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid – no icons */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Current Cycle</p>
-              <p className="text-lg font-semibold text-gray-800 mt-1">
-                {stats.currentCycle ? stats.currentCycle.name : "None"}
-              </p>
-              <p className="text-xs text-gray-400 capitalize">
-                {stats.currentCycle
-                  ? stats.currentCycle.status
-                  : "No active cycle"}
-              </p>
-            </div>
-            <div className="bg-emerald-100 p-3 rounded-full">
-              <FiClock className="text-emerald-600" size={20} />
-            </div>
-          </div>
+          <p className="text-gray-500 text-sm font-medium">Total Savings</p>
+          <p className="text-2xl font-bold text-emerald-700 mt-1">
+            {formatMoney(stats.totalSavings)}
+          </p>
         </div>
+
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Savings</p>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">
-                {formatMoney(stats.totalSavings)}
-              </p>
-            </div>
-            <div className="bg-emerald-100 p-3 rounded-full">
-              <FiDollarSign className="text-emerald-600" size={20} />
-            </div>
-          </div>
+          <p className="text-gray-500 text-sm font-medium">Profit</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">
+            {formatMoney(profit)}
+          </p>
         </div>
+
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">
-                Interest Earned
-              </p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">
-                {formatMoney(stats.totalInterest)}
-              </p>
-            </div>
-            <div className="bg-amber-100 p-3 rounded-full">
-              <FiTrendingUp className="text-amber-600" size={20} />
-            </div>
-          </div>
+          <p className="text-gray-500 text-sm font-medium">Interest Earned</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">
+            {formatMoney(stats.totalInterest)}
+          </p>
         </div>
+
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">
-                Fines Collected
-              </p>
-              <p className="text-2xl font-bold text-red-600 mt-1">
-                {formatMoney(stats.totalFines)}
-              </p>
-            </div>
-            <div className="bg-red-100 p-3 rounded-full">
-              <FiAlertTriangle className="text-red-600" size={20} />
-            </div>
-          </div>
+          <p className="text-gray-500 text-sm font-medium">Fines Collected</p>
+          <p className="text-2xl font-bold text-red-600 mt-1">
+            {formatMoney(stats.totalFines)}
+          </p>
         </div>
       </div>
 

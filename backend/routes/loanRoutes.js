@@ -12,7 +12,9 @@ const {
   getLoanDetails,
   getGroupFunds,
   getGroupLoanTotals,
-  getTotalInterest, // NEW
+  getTotalInterest,
+  getAllLoans, // NEW
+  getLoanStats, // NEW
 } = require("../controllers/loanController");
 const { protect } = require("../middleware/auth");
 
@@ -32,10 +34,14 @@ router.get("/pending/:groupId", getPendingLoans);
 router.put("/approve/:loanId", approveLoan);
 router.put("/reject/:loanId", rejectLoan);
 
+// NEW admin endpoints
+router.get("/all/:groupId", getAllLoans); // all loans with filters
+router.get("/stats/:groupId", getLoanStats); // loan statistics
+
 // Group totals (all roles)
 router.get("/group/total/:groupId", getGroupLoanTotals);
 router.get("/group/funds/:groupId", getGroupFunds);
-router.get("/interest/:groupId", getTotalInterest); // NEW
+router.get("/interest/:groupId", getTotalInterest);
 
 // Generic loan details (must be last)
 router.get("/:groupId/:id", getLoanDetails);

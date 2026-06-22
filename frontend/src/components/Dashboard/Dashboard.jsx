@@ -8,6 +8,7 @@ import {
   FiBookOpen,
   FiAlertTriangle,
   FiPercent,
+  FiArrowUpRight,
 } from "react-icons/fi";
 import api from "../../services/api";
 import toast from "react-hot-toast";
@@ -177,7 +178,6 @@ const Dashboard = () => {
     total_issued: 0,
     total_paid: 0,
     outstanding: 0,
-    members_fined: 0,
   });
   const [totalInterest, setTotalInterest] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -227,7 +227,6 @@ const Dashboard = () => {
       total_issued: toNumber(fineRes.data.total_issued),
       total_paid: toNumber(fineRes.data.total_paid),
       outstanding: toNumber(fineRes.data.outstanding),
-      members_fined: toNumber(fineRes.data.members_fined),
     });
 
     const interestRes = await api.get(`/loans/interest/${groupId}`);
@@ -329,145 +328,136 @@ const Dashboard = () => {
   }
 
   // ── Admin Dashboard ────────────────────────────────────────────────────
-  const AdminDashboard = () => (
-    <div>
-      <GroupHeader />
-      <HeroFundCard
-        label="Total Group Funds"
-        amount={formatMoney(stats.total_funds)}
-        sub="Savings + repayments"
-        icon={FiDollarSign}
-      />
+  const AdminDashboard = () => {
+    const totalProfit = totalInterest + adminFineStats.total_paid;
+    return (
+      <div>
+        <GroupHeader />
+        <HeroFundCard
+          label="Total Group Funds"
+          amount={formatMoney(stats.total_funds)}
+          sub="Savings + repayments"
+          icon={FiTrendingUp}
+        />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5 px-4">
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Members</p>
-              <p className="text-3xl font-bold text-emerald-700 mt-2">
-                {stats.total_members}
-              </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5 px-4">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">
+                  Total Members
+                </p>
+                <p className="text-3xl font-bold text-emerald-700 mt-2">
+                  {stats.total_members}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">
+                  Total Savings
+                </p>
+                <p className="text-3xl font-bold text-emerald-700 mt-2">
+                  {formatMoney(stats.total_savings)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">
+                  Total Profit
+                </p>
+                <p className="text-3xl font-bold text-amber-600 mt-2">
+                  {formatMoney(totalProfit)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">Total Fines</p>
+                <p className="text-3xl font-bold text-red-600 mt-2">
+                  {formatMoney(adminFineStats.total_issued)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm font-medium">
+                  Total Interest
+                </p>
+                <p className="text-3xl font-bold text-indigo-600 mt-2">
+                  {formatMoney(totalInterest)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Savings</p>
-              <p className="text-3xl font-bold text-emerald-700 mt-2">
-                {formatMoney(stats.total_savings)}
-              </p>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mx-4 mt-5 mb-6">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <FiActivity className="text-amber-500" size={20} />
+              <h2 className="text-xl font-semibold text-gray-800">
+                Recent Activity
+              </h2>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Loans</p>
-              <p className="text-3xl font-bold text-amber-600 mt-2">
-                {stats.active_loans_count}
+          <div className="p-6">
+            {stats.recent_transactions.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">
+                No transactions yet
               </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Amount: {formatMoney(stats.total_loans_amount)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Total Fines</p>
-              <p className="text-3xl font-bold text-red-600 mt-2">
-                {formatMoney(adminFineStats.total_issued)}
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Paid: {formatMoney(adminFineStats.total_paid)} · Outstanding:{" "}
-                {formatMoney(adminFineStats.outstanding)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">
-                Total Interest
-              </p>
-              <p className="text-3xl font-bold text-indigo-600 mt-2">
-                {formatMoney(totalInterest)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-gray-500 text-sm font-medium">Members Fined</p>
-              <p className="text-3xl font-bold text-gray-700 mt-2">
-                {adminFineStats.members_fined}
-              </p>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                {stats.recent_transactions.map((tx, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {tx.member_name}
+                      </p>
+                      <p className="text-xs text-gray-400 capitalize">
+                        {tx.type}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={`font-semibold ${
+                          tx.type === "saving"
+                            ? "text-emerald-600"
+                            : "text-amber-600"
+                        }`}
+                      >
+                        {tx.type === "saving" ? "+" : "-"}{" "}
+                        {formatMoney(tx.amount)}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(tx.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mx-4 mt-5 mb-6">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <FiActivity className="text-amber-500" size={20} />
-            <h2 className="text-xl font-semibold text-gray-800">
-              Recent Activity
-            </h2>
-          </div>
-        </div>
-        <div className="p-6">
-          {stats.recent_transactions.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">
-              No transactions yet
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {stats.recent_transactions.map((tx, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0"
-                >
-                  <div>
-                    <p className="font-medium text-gray-800">
-                      {tx.member_name}
-                    </p>
-                    <p className="text-xs text-gray-400 capitalize">
-                      {tx.type}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-semibold ${
-                        tx.type === "saving"
-                          ? "text-emerald-600"
-                          : "text-amber-600"
-                      }`}
-                    >
-                      {tx.type === "saving" ? "+" : "-"}{" "}
-                      {formatMoney(tx.amount)}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(tx.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   // ── Member Dashboard ── (Z‑layout: Savings|Loan on top, Fines|Total Members below)
   const MemberDashboard = () => (

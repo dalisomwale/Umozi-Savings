@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiPlus,
@@ -11,11 +11,25 @@ import {
   FiUserCheck,
   FiUserX,
   FiFileText,
+  FiList,
+  FiEye,
+  FiCheckCircle,
+  FiXCircle,
+  FiSearch,
+  FiCalendar,
+  FiRefreshCw,
 } from "react-icons/fi";
 import api from "../../services/api";
 import toast from "react-hot-toast";
 
-// ── Shared hero header (matches Dashboard) ────────────────────────────────
+// ── helper: safely read a localStorage value, treating "null"/"undefined"/"" as empty ──
+const readStoredId = (key) => {
+  const v = localStorage.getItem(key);
+  if (!v || v === "null" || v === "undefined") return null;
+  return v;
+};
+
+// ── Shared hero header ────────────────────────────────────────────────
 const HeroHeader = () => (
   <div style={styles.heroHeader}>
     <div style={styles.circle1} />
@@ -23,111 +37,232 @@ const HeroHeader = () => (
   </div>
 );
 
-// ── Floating hero card ────────────────────────────────────────────────────
-const HeroCard = ({ label, value, sub, action }) => (
+// ── Floating hero card ── now accepts optional color prop ─────────────
+const HeroCard = ({ label, value, sub, color = "#065F46" }) => (
   <div style={styles.heroCardWrap}>
     <div style={styles.heroCard}>
       <div style={{ flex: 1 }}>
         <p style={styles.heroLabel}>{label}</p>
-        <p style={styles.heroAmount}>{value}</p>
+        <p style={{ ...styles.heroAmount, color }}>{value}</p>
         <p style={styles.heroSub}>{sub}</p>
       </div>
-      {action && (
-        <button style={styles.fabSmall} onClick={action.onClick}>
-          {action.icon}
-        </button>
-      )}
     </div>
   </div>
 );
 
 const LoanList = () => {
   const navigate = useNavigate();
-  const groupId = localStorage.getItem("selectedGroupId");
+  const groupId = readStoredId("selectedGroupId");
   const role = localStorage.getItem("selectedGroupRole");
-  const [memberId, setMemberId] = useState(localStorage.getItem("member_id"));
+  const [memberId, setMemberId] = useState(readStoredId("member_id"));
   const [activeLoans, setActiveLoans] = useState([]);
+  const [allLoans, setAllLoans] = useState([]);
+  const [filteredLoans, setFilteredLoans] = useState([]);
+  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
   const [error, setError] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
-  const [expandedLoanId, setExpandedLoanId] = useState(null); // track expanded loan
+  const [expandedLoanId, setExpandedLoanId] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [filters, setFilters] = useState({ member: "", status: "all" });
 
-  useEffect(() => {
-    const fetchMemberId = async () => {
-      if (!groupId || role !== "member" || memberId) return;
-      try {
-        const res = await api.get(`/members/member-id/${groupId}`);
-        localStorage.setItem("member_id", res.data.member_id);
-        setMemberId(res.data.member_id);
-      } catch (err) {
-        console.error("Failed to fetch member_id:", err);
-      }
-    };
-    fetchMemberId();
-  }, [groupId, role, memberId]);
-
-  useEffect(() => {
-    if (!groupId) {
-      setError("No group selected.");
-      setLoading(false);
-      return;
-    }
-    if (role === "admin") fetchAdminLoans();
-    else if (role === "member") {
-      if (!memberId) {
-        setError("Member profile not linked.");
-        setLoading(false);
-        return;
-      }
-      fetchMemberLoans();
-    } else {
-      setError("User role not identified.");
-      setLoading(false);
-    }
-    fetchRecentActivities();
-  }, [groupId, role, memberId]);
-
-  const fetchAdminLoans = async () => {
+  // ── Helper: fetch member ID ──
+  // Always returns either a valid id or null. Never throws.
+  const fetchMemberId = useCallback(async () => {
+    if (!groupId || role !== "member") return null;
+    if (memberId) return memberId;
     try {
-      const res = await api.get(`/loans/active/${groupId}`);
-      setActiveLoans(res.data);
+      const res = await api.get(`/members/member-id/${groupId}`);
+      const id = res?.data?.member_id ?? null;
+      if (!id) {
+        setError("Member profile not found. Please contact your group admin.");
+        return null;
+      }
+      localStorage.setItem("member_id", id);
+      setMemberId(id);
+      return id;
     } catch (err) {
+      console.error("Failed to fetch member_id:", err);
+      setError("Member profile not found. Please contact your group admin.");
+      return null;
+    }
+  }, [groupId, role, memberId]);
+
+  // ── Fetch functions ──
+  // Each fetch function is self-contained and never throws — it always
+  // resolves, setting error state internally on failure.
+  const fetchAdminLoans = useCallback(async () => {
+    if (!groupId) return;
+    try {
+      const res = await api.get(`/loans/all/${groupId}`, { params: filters });
+      const data = Array.isArray(res.data) ? res.data : [];
+      setAllLoans(data);
+      setFilteredLoans(data);
+    } catch (err) {
+      console.error("Failed to load loans:", err);
       setError(
         `Failed to load loans: ${err.response?.data?.message || err.message}`,
       );
-    } finally {
-      setLoading(false);
+      setAllLoans([]);
+      setFilteredLoans([]);
     }
-  };
+  }, [groupId, filters]);
 
-  const fetchMemberLoans = async () => {
+  const fetchAdminStats = useCallback(async () => {
+    if (!groupId) return;
     try {
-      const res = await api.get(`/loans/history/${groupId}/${memberId}`);
-      setActiveLoans(res.data.filter((l) => l.status === "active"));
+      const res = await api.get(`/loans/stats/${groupId}`);
+      setStats(res.data || {});
     } catch (err) {
-      const msg = err.response?.data?.message || err.message;
-      setError(`Failed to load your loans: ${msg}`);
-      toast.error(msg);
-    } finally {
-      setLoading(false);
+      console.error("Failed to load stats:", err);
+      setStats({});
     }
-  };
+  }, [groupId]);
 
-  const fetchRecentActivities = async () => {
+  const fetchMemberLoans = useCallback(
+    async (id) => {
+      if (!groupId || !id) {
+        setActiveLoans([]);
+        return;
+      }
+      try {
+        const res = await api.get(`/loans/history/${groupId}/${id}`);
+        const data = Array.isArray(res.data) ? res.data : [];
+        setActiveLoans(data.filter((l) => l.status === "active"));
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message;
+        console.error("Failed to load your loans:", err);
+        setError(`Failed to load your loans: ${msg}`);
+        setActiveLoans([]);
+        toast.error(msg);
+      }
+    },
+    [groupId],
+  );
+
+  const fetchRecentActivities = useCallback(async () => {
     if (!groupId) return;
     setLoadingActivities(true);
     try {
       const res = await api.get(`/loans/activities/${groupId}`);
-      setActivities(res.data);
+      setActivities(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to fetch activities:", err);
+      setActivities([]);
     } finally {
       setLoadingActivities(false);
     }
-  };
+  }, [groupId]);
+
+  // ── Main load effect ──
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!isMounted) return;
+      setLoading(true);
+      setLoadingStats(true);
+      setError(null);
+
+      try {
+        if (!groupId) {
+          setError("No group selected.");
+          return;
+        }
+
+        if (role === "admin") {
+          await Promise.all([
+            fetchAdminStats(),
+            fetchAdminLoans(),
+            fetchRecentActivities(),
+          ]);
+        } else if (role === "member") {
+          const id = memberId || (await fetchMemberId());
+          if (!id) {
+            // error already set inside fetchMemberId
+            return;
+          }
+          await Promise.all([fetchMemberLoans(id), fetchRecentActivities()]);
+        } else {
+          setError("User role not identified.");
+        }
+      } catch (err) {
+        // Final safety net — guarantees loading never gets stuck
+        // even if something unexpected throws above.
+        console.error("Unexpected error loading loans:", err);
+        setError("Something went wrong loading loans. Please try refreshing.");
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          setLoadingStats(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    groupId,
+    role,
+    memberId,
+    fetchAdminStats,
+    fetchAdminLoans,
+    fetchRecentActivities,
+    fetchMemberId,
+    fetchMemberLoans,
+  ]);
+
+  // ── Auto-refresh: listen for loan updates ──
+  useEffect(() => {
+    const handleLoanUpdate = () => {
+      if (role === "admin") {
+        fetchAdminStats();
+        fetchAdminLoans();
+        fetchRecentActivities();
+      } else {
+        if (memberId) {
+          fetchMemberLoans(memberId);
+        }
+        fetchRecentActivities();
+      }
+    };
+    window.addEventListener("loan-updated", handleLoanUpdate);
+    return () => window.removeEventListener("loan-updated", handleLoanUpdate);
+  }, [
+    role,
+    memberId,
+    fetchAdminStats,
+    fetchAdminLoans,
+    fetchMemberLoans,
+    fetchRecentActivities,
+  ]);
+
+  // ── Apply filters for admin ──
+  useEffect(() => {
+    if (role === "admin") {
+      let filtered = allLoans;
+      if (activeTab !== "all") {
+        filtered = filtered.filter((l) => l.status === activeTab);
+      }
+      if (filters.member) {
+        filtered = filtered.filter((l) =>
+          (l.fullname || "")
+            .toLowerCase()
+            .includes(filters.member.toLowerCase()),
+        );
+      }
+      setFilteredLoans(filtered);
+    }
+  }, [allLoans, activeTab, filters, role]);
 
   const toNum = (v) => (isNaN(Number(v)) ? 0 : Number(v));
+  const formatMoney = (v) => `K${toNum(v).toFixed(2)}`;
+
   const totalOutstanding = activeLoans.reduce(
     (s, l) => s + toNum(l.remaining),
     0,
@@ -161,6 +296,10 @@ const LoanList = () => {
       default:
         return "#6B7280";
     }
+  };
+
+  const handleManualRefresh = () => {
+    window.dispatchEvent(new Event("loan-updated"));
   };
 
   const ActivityList = () => (
@@ -215,34 +354,90 @@ const LoanList = () => {
     </div>
   );
 
-  if (loading)
+  // ── Admin Handlers ──
+  const handleApprove = async (loanId) => {
+    try {
+      await api.put(`/loans/approve/${loanId}`);
+      toast.success("Loan approved");
+      window.dispatchEvent(new Event("loan-updated"));
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Approval failed");
+    }
+  };
+
+  const handleReject = async (loanId) => {
+    try {
+      await api.put(`/loans/reject/${loanId}`);
+      toast.success("Loan rejected");
+      window.dispatchEvent(new Event("loan-updated"));
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Rejection failed");
+    }
+  };
+
+  if (loading || loadingStats) {
     return (
       <div style={styles.centered}>
         <div style={styles.spinner} />
       </div>
     );
-  if (error)
+  }
+
+  if (error) {
     return (
       <div style={styles.centered}>
-        <p style={{ color: "#EF4444", fontSize: 14 }}>{error}</p>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <p
+            style={{
+              color: "#EF4444",
+              fontSize: 14,
+              textAlign: "center",
+              maxWidth: 280,
+            }}
+          >
+            {error}
+          </p>
+          <button
+            onClick={handleManualRefresh}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "#059669",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <FiRefreshCw size={14} /> Retry
+          </button>
+        </div>
       </div>
     );
+  }
 
-  /* ── MEMBER VIEW with expandable active loans ── */
+  /* ── MEMBER VIEW ── */
   if (role === "member") {
     return (
       <div style={styles.page}>
         <HeroHeader />
-
         <HeroCard
           label="MY LOANS"
-          value={`K${totalOutstanding.toLocaleString("en", {
-            minimumFractionDigits: 2,
-          })}`}
+          value={`K${totalOutstanding.toLocaleString("en", { minimumFractionDigits: 2 })}`}
           sub="outstanding balance"
+          color="#EA580C" // 🔥 ORANGE
         />
-
-        {/* Request Loan card (identical to Add Savings card) */}
         <div style={styles.requestCard}>
           <button
             style={styles.requestLoanBtn}
@@ -253,7 +448,6 @@ const LoanList = () => {
           </button>
         </div>
 
-        {/* Active loans - expandable list */}
         <div style={styles.section}>
           <div style={styles.sectionHeader}>
             <span style={styles.sectionTitle}>Active Loans</span>
@@ -273,7 +467,6 @@ const LoanList = () => {
 
               return (
                 <div key={loan.id} style={styles.activeLoanItem}>
-                  {/* Summary row - click to expand/collapse */}
                   <div
                     style={styles.loanSummaryRow}
                     onClick={() =>
@@ -305,7 +498,6 @@ const LoanList = () => {
                     </div>
                   </div>
 
-                  {/* Expanded detailed card */}
                   {isExpanded && (
                     <div style={styles.expandedDetails}>
                       <div style={styles.amountRow}>
@@ -367,97 +559,198 @@ const LoanList = () => {
     );
   }
 
-  /* ── ADMIN VIEW (unchanged) ── */
+  /* ── ADMIN VIEW ── (unchanged) */
   return (
-    <div style={styles.page}>
-      <HeroHeader />
+    <div className="max-w-7xl mx-auto px-2 space-y-5">
+      {/* Stats Cards – no icons */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-medium">Total Loan Amount</p>
+          <p className="text-3xl font-bold text-gray-700 mt-2">
+            {formatMoney(stats.totalLoanAmount || 0)}
+          </p>
+        </div>
 
-      <HeroCard
-        label="ACTIVE LOANS"
-        value={`${activeLoans.length} borrowers`}
-        sub="currently active"
-      />
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-medium">Paid Loan Amount</p>
+          <p className="text-3xl font-bold text-blue-600 mt-2">
+            {formatMoney(stats.paidLoanAmount || 0)}
+          </p>
+        </div>
 
-      <div style={styles.section}>
-        {activeLoans.length === 0 ? (
-          <div style={styles.emptyState}>
-            <p style={styles.emptyText}>No active loans</p>
-          </div>
-        ) : (
-          activeLoans.map((loan) => {
-            const paid = toNum(loan.paid_amount);
-            const totalDue = toNum(loan.total_due);
-            const remaining = toNum(loan.remaining);
-            const pct = totalDue === 0 ? 0 : (paid / totalDue) * 100;
-            const overdue = new Date(loan.due_date) < new Date();
-            return (
-              <div
-                key={loan.id}
-                style={styles.adminLoanRow}
-                onClick={() => navigate(`/app/loans/${loan.id}`)}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-medium">Pending</p>
+          <p className="text-3xl font-bold text-amber-600 mt-2">
+            {stats.pendingLoans || 0}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <p className="text-gray-500 text-sm font-medium">Active Loans</p>
+          <p className="text-3xl font-bold text-emerald-600 mt-2">
+            {stats.activeLoans || 0}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Outstanding: {formatMoney(stats.outstandingAmount || 0)}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs and Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex flex-wrap gap-2 border-b border-gray-200">
+            {["all", "pending", "active", "paid", "rejected"].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 text-sm font-medium ${
+                  activeTab === tab
+                    ? "border-b-2 border-emerald-600 text-emerald-600"
+                    : "text-gray-500"
+                }`}
+                onClick={() => setActiveTab(tab)}
               >
-                <div style={styles.adminRowLeft}>
-                  <div style={styles.avatar}>
-                    {(loan.fullname || "?")[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p style={styles.adminName}>{loan.fullname}</p>
-                    <p style={styles.cardMeta}>{loan.phone}</p>
-                  </div>
-                </div>
-                <div style={styles.adminRowRight}>
-                  <div style={{ textAlign: "right" }}>
-                    <p
-                      style={{
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color: "#D97706",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      K{remaining.toFixed(2)}
-                    </p>
-                    <p style={styles.cardMeta}>remaining</p>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-end",
-                      gap: 4,
-                    }}
-                  >
-                    {overdue ? (
-                      <span style={styles.badgeRed}>
-                        <FiAlertCircle size={10} /> Overdue
-                      </span>
-                    ) : (
-                      <span style={styles.badgeGreen}>On Track</span>
-                    )}
-                    <div
-                      style={{
-                        width: 60,
-                        height: 4,
-                        borderRadius: 2,
-                        background: "#E5E7EB",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${pct}%`,
-                          height: "100%",
-                          borderRadius: 2,
-                          background: "#059669",
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <FiChevronRight size={16} style={{ color: "#9CA3AF" }} />
-                </div>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 items-end mt-4">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Member Name
+              </label>
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  className="w-full border rounded-lg pl-10 pr-4 py-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Search member..."
+                  value={filters.member}
+                  onChange={(e) =>
+                    setFilters({ ...filters, member: e.target.value })
+                  }
+                />
               </div>
-            );
-          })
-        )}
+            </div>
+            <div className="w-48">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                className="w-full border rounded-lg px-3 py-2 focus:ring-emerald-500 focus:border-emerald-500"
+                value={filters.status}
+                onChange={(e) =>
+                  setFilters({ ...filters, status: e.target.value })
+                }
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="paid">Paid</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left">Loan ID</th>
+                <th className="px-4 py-3 text-left">Member</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+                <th className="px-4 py-3 text-right">Total Paid</th>
+                <th className="px-4 py-3 text-center">Interest</th>
+                <th className="px-4 py-3 text-center">Status</th>
+                <th className="px-4 py-3 text-right">Outstanding</th>
+                <th className="px-4 py-3 text-left">Issue Date</th>
+                <th className="px-4 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLoans.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-8 text-gray-400">
+                    No loans found
+                  </td>
+                </tr>
+              ) : (
+                filteredLoans.map((loan) => (
+                  <tr key={loan.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">#{loan.id}</td>
+                    <td className="px-4 py-3">{loan.fullname}</td>
+                    <td className="px-4 py-3 text-right">
+                      {formatMoney(toNum(loan.amount))}
+                    </td>
+                    <td className="px-4 py-3 text-right text-emerald-600 font-medium">
+                      {formatMoney(toNum(loan.paid_amount))}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {toNum(loan.interest_rate)}%
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          loan.status === "active"
+                            ? "bg-green-100 text-green-700"
+                            : loan.status === "pending"
+                              ? "bg-amber-100 text-amber-700"
+                              : loan.status === "paid"
+                                ? "bg-blue-100 text-blue-700"
+                                : loan.status === "rejected"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {loan.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium text-amber-600">
+                      {formatMoney(toNum(loan.remaining))}
+                    </td>
+                    <td className="px-4 py-3">
+                      {new Date(loan.issue_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-center space-x-1">
+                      <button
+                        onClick={() => navigate(`/app/loans/${loan.id}`)}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                        title="View Details"
+                      >
+                        <FiEye size={16} />
+                      </button>
+                      {loan.status === "pending" && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(loan.id)}
+                            className="text-green-600 hover:text-green-800 p-1"
+                            title="Approve"
+                          >
+                            <FiCheckCircle size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleReject(loan.id)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                            title="Reject"
+                          >
+                            <FiXCircle size={16} />
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-4 py-3 bg-gray-50 border-t text-xs text-gray-500">
+          Showing {filteredLoans.length} of {allLoans.length} loans
+        </div>
       </div>
 
       <ActivityList />
@@ -465,6 +758,7 @@ const LoanList = () => {
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────
 const styles = {
   page: {
     display: "flex",
@@ -550,7 +844,7 @@ const styles = {
   heroAmount: {
     fontSize: 34,
     fontWeight: 700,
-    color: "#065F46",
+    color: "#065F46", // default green
     margin: "4px 0 2px",
     lineHeight: 1,
     fontVariantNumeric: "tabular-nums",
@@ -560,26 +854,7 @@ const styles = {
     color: "#9CA3AF",
     margin: 0,
   },
-  fabSmall: {
-    width: 44,
-    height: 44,
-    borderRadius: "50%",
-    background: "#059669",
-    border: "none",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    flexShrink: 0,
-    transition: "all 0.2s ease",
-    ":hover": {
-      background: "#047857",
-      transform: "scale(1.02)",
-    },
-  },
 
-  // Request Loan card (exactly like Add Savings card)
   requestCard: {
     background: "#fff",
     borderRadius: 16,
@@ -627,7 +902,6 @@ const styles = {
     textTransform: "uppercase",
   },
 
-  // Expandable loan styles
   activeLoanItem: {
     background: "#fff",
     borderRadius: 16,
@@ -697,7 +971,6 @@ const styles = {
     gap: 12,
   },
 
-  // Detailed card styles (shared with previous loanCard)
   amountRow: { display: "flex", alignItems: "center", gap: 0 },
   amountBlock: {
     flex: 1,
@@ -748,28 +1021,7 @@ const styles = {
       transform: "scale(1.01)",
     },
   },
-  badgeGreen: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#059669",
-    background: "#ECFDF5",
-    borderRadius: 20,
-    padding: "3px 8px",
-    display: "flex",
-    alignItems: "center",
-    gap: 3,
-  },
-  badgeRed: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#EF4444",
-    background: "#FEF2F2",
-    borderRadius: 20,
-    padding: "3px 8px",
-    display: "flex",
-    alignItems: "center",
-    gap: 3,
-  },
+
   emptyState: {
     padding: "32px 0",
     display: "flex",
@@ -779,48 +1031,6 @@ const styles = {
   },
   emptyText: { color: "#9CA3AF", fontSize: 14 },
 
-  // Admin styles
-  adminLoanRow: {
-    background: "#fff",
-    borderRadius: 14,
-    padding: "14px 16px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-    cursor: "pointer",
-    gap: 12,
-  },
-  adminRowLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-    minWidth: 0,
-  },
-  adminRowRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    flexShrink: 0,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: "50%",
-    background: "#ECFDF5",
-    color: "#059669",
-    fontSize: 15,
-    fontWeight: 700,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  adminName: { fontSize: 14, fontWeight: 600, color: "#1F2937" },
-  cardMeta: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
-
-  // Activities
   recentSection: { padding: "8px 16px 32px", marginTop: 4 },
   activityCard: {
     background: "#fff",

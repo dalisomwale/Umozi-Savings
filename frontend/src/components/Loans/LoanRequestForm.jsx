@@ -38,7 +38,7 @@ const LoanRequestForm = () => {
 
   if (!memberId) {
     toast.error("Member profile not found.");
-    setTimeout(() => navigate("/"), 1500);
+    setTimeout(() => navigate("/app/dashboard"), 1500);
     return null;
   }
 
@@ -49,7 +49,7 @@ const LoanRequestForm = () => {
   const exceedsFunds = totalFunds !== null && amt > totalFunds;
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // ✅ Prevent page reload
     if (!amt || amt <= 0) return toast.error("Enter a valid amount");
     if (exceedsFunds)
       return toast.error(
@@ -60,10 +60,10 @@ const LoanRequestForm = () => {
       await api.post("/loans/request", {
         ...formData,
         groupId,
-        member_id: memberId,
+        member_id: parseInt(memberId, 10),
       });
       toast.success("Loan request submitted.");
-      navigate("/loans");
+      navigate("/app/loans"); // ✅ Correct path
     } catch (err) {
       toast.error(err.response?.data?.message || "Request failed");
     } finally {
@@ -75,8 +75,10 @@ const LoanRequestForm = () => {
     <div style={styles.page}>
       {/* Hero header with arrow button and heading */}
       <div style={styles.heroHeader}>
+        <div style={styles.circle1} />
+        <div style={styles.circle2} />
         <div style={styles.headerRow}>
-          <button onClick={() => navigate(-1)} style={styles.backBtn}>
+          <button onClick={() => navigate("/app/loans")} style={styles.backBtn}>
             <FiArrowLeft size={16} color="#A7F3D0" />
           </button>
           <h1 style={styles.pageHeading}>Request a Loan</h1>
@@ -98,7 +100,7 @@ const LoanRequestForm = () => {
         </div>
       </div>
 
-      {/* Form body (unchanged) */}
+      {/* Form body */}
       <div style={styles.body}>
         <div style={styles.card}>
           <form
@@ -218,7 +220,7 @@ const LoanRequestForm = () => {
               </div>
             </div>
 
-            {/* Summary (only when amount entered) */}
+            {/* Summary */}
             {formData.amount && (
               <div style={styles.summaryCard}>
                 <p style={styles.summaryTitle}>Loan Summary</p>
@@ -272,7 +274,7 @@ const LoanRequestForm = () => {
               <button
                 type="button"
                 style={styles.cancelBtn}
-                onClick={() => navigate("/loans")}
+                onClick={() => navigate("/app/loans")} // ✅ Correct path
               >
                 Cancel
               </button>
@@ -301,8 +303,6 @@ const styles = {
     background: "#F8F9FB",
     minHeight: "100vh",
   },
-
-  // Hero header with arrow button and heading
   heroHeader: {
     background: "#064E3B",
     borderRadius: "0 0 2rem 2rem",
@@ -342,8 +342,6 @@ const styles = {
     margin: 0,
     letterSpacing: "-0.3px",
   },
-
-  // Floating hero card (unchanged)
   heroCardWrap: {
     padding: "0 1rem",
     marginTop: "-1.75rem",
@@ -381,18 +379,6 @@ const styles = {
     color: "#9CA3AF",
     margin: 0,
   },
-  heroIconWrap: {
-    background: "#D1FAE5",
-    borderRadius: "50%",
-    width: 50,
-    height: 50,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-
-  // Form body (unchanged)
   body: { padding: "16px" },
   card: {
     background: "#fff",
@@ -486,6 +472,18 @@ const styles = {
     fontWeight: 700,
     color: "#fff",
     cursor: "pointer",
+  },
+  backBtn: {
+    background: "rgba(255,255,255,0.12)",
+    border: "none",
+    borderRadius: 10,
+    width: 36,
+    height: 36,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "background 0.2s",
   },
 };
 

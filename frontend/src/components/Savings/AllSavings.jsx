@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiSearch, FiCalendar, FiArrowLeft } from "react-icons/fi";
+import {
+  FiSearch,
+  FiCalendar,
+  FiArrowLeft,
+  FiDollarSign,
+} from "react-icons/fi";
 import api from "../../services/api";
 import toast from "react-hot-toast";
 
@@ -9,6 +14,7 @@ const AllSavings = () => {
   const groupId = localStorage.getItem("selectedGroupId");
   const [savings, setSavings] = useState([]);
   const [filteredSavings, setFilteredSavings] = useState([]);
+  const [totalSavings, setTotalSavings] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
@@ -21,6 +27,7 @@ const AllSavings = () => {
       const res = await api.get(`/savings/all/${groupId}`);
       setSavings(res.data.savings);
       setFilteredSavings(res.data.savings);
+      setTotalSavings(toNumber(res.data.total_savings));
     } catch (error) {
       toast.error("Failed to load savings records");
     } finally {
@@ -55,11 +62,6 @@ const AllSavings = () => {
     setFilteredSavings(filtered);
   }, [searchTerm, selectedMonth, savings]);
 
-  const resetFilters = () => {
-    setSearchTerm("");
-    setSelectedMonth("");
-  };
-
   const formatMoney = (v) => `K${v.toFixed(2)}`;
 
   if (loading)
@@ -71,20 +73,21 @@ const AllSavings = () => {
 
   return (
     <div className="space-y-5 max-w-7xl mx-auto px-2">
-      <div className="flex justify-between items-center flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/app/dashboard")}
-            className="flex items-center gap-2 text-emerald-600 hover:text-emerald-800"
-          >
-            <FiArrowLeft /> Dashboard
-          </button>
+      {/* Total Savings Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-gray-500 text-sm font-medium">Total Savings</p>
+            <p className="text-3xl font-bold text-emerald-700 mt-2">
+              {formatMoney(totalSavings)}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Filters: Search by member + Month picker */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Member Name

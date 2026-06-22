@@ -91,7 +91,7 @@ exports.requestLoan = async (req, res) => {
       .status(201)
       .json({ message: "Loan request submitted", loanId: result.insertId });
   } catch (error) {
-    console.error(error);
+    console.error("requestLoan error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -114,7 +114,7 @@ exports.approveLoan = async (req, res) => {
     await db.query('UPDATE loans SET status = "active" WHERE id = ?', [loanId]);
     res.json({ message: "Loan approved" });
   } catch (error) {
-    console.error(error);
+    console.error("approveLoan error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -138,7 +138,7 @@ exports.rejectLoan = async (req, res) => {
     ]);
     res.json({ message: "Loan rejected" });
   } catch (error) {
-    console.error(error);
+    console.error("rejectLoan error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -178,7 +178,7 @@ exports.getActiveLoans = async (req, res) => {
     }));
     res.json(parsed);
   } catch (error) {
-    console.error(error);
+    console.error("getActiveLoans error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -210,7 +210,7 @@ exports.getPendingLoans = async (req, res) => {
     }));
     res.json(parsed);
   } catch (error) {
-    console.error(error);
+    console.error("getPendingLoans error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -250,7 +250,7 @@ exports.getActiveLoansForMember = async (req, res) => {
     }));
     res.json(parsed);
   } catch (error) {
-    console.error(error);
+    console.error("getActiveLoansForMember error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -283,7 +283,7 @@ exports.getLoanSummary = async (req, res) => {
       total_outstanding: toNumber(result[0]?.total_outstanding || 0),
     });
   } catch (error) {
-    console.error(error);
+    console.error("getLoanSummary error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -323,7 +323,7 @@ exports.getLoanHistory = async (req, res) => {
     }));
     res.json(parsed);
   } catch (error) {
-    console.error(error);
+    console.error("getLoanHistory error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -390,7 +390,7 @@ exports.recordRepayment = async (req, res) => {
       connection.release();
     }
   } catch (error) {
-    console.error(error);
+    console.error("recordRepayment error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -445,7 +445,7 @@ exports.getLoanDetails = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error(error);
+    console.error("getLoanDetails error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -457,7 +457,7 @@ exports.getGroupFunds = async (req, res) => {
     const totalFunds = await getGroupTotalFunds(groupId);
     res.json({ total_funds: totalFunds });
   } catch (error) {
-    console.error(error);
+    console.error("getGroupFunds error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -478,12 +478,12 @@ exports.getGroupLoanTotals = async (req, res) => {
       active_loans: toNumber(result[0]?.active_loans || 0),
     });
   } catch (error) {
-    console.error(error);
+    console.error("getGroupLoanTotals error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// ── NEW: Total interest earned (admin only) ──
+// ── Total interest earned (admin only) ──
 exports.getTotalInterest = async (req, res) => {
   try {
     const { groupId } = req.params;
@@ -497,7 +497,153 @@ exports.getTotalInterest = async (req, res) => {
     );
     res.json({ total_interest: toNumber(result[0]?.total_interest || 0) });
   } catch (error) {
-    console.error(error);
+    console.error("getTotalInterest error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Get all loans with filters (admin only) ──────────────────────
+exports.getAllLoans = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { status, member } = req.query;
+    const userId = req.user.id;
+
+    if (!(await isAdmin(userId, groupId))) {
+      return res
+        .status(403)
+        .json({ message: "Only admins can view all loans" });
+    }
+
+    let query = `
+      SELECT l.*, m.fullname, m.phone,
+             COALESCE(SUM(r.amount_paid), 0) as paid_amount,
+             (l.amount + (l.amount * l.interest_rate / 100)) as total_due,
+             (l.amount + (l.amount * l.interest_rate / 100)) - COALESCE(SUM(r.amount_paid), 0) as remaining
+      FROM loans l
+      JOIN members m ON l.member_id = m.id
+      LEFT JOIN repayments r ON l.id = r.loan_id
+      WHERE l.group_id = ?
+    `;
+    const params = [groupId];
+
+    if (status && status !== "all") {
+      query += ` AND l.status = ?`;
+      params.push(status);
+    }
+    if (member) {
+      query += ` AND m.fullname LIKE ?`;
+      params.push(`%${member}%`);
+    }
+
+    query += ` GROUP BY l.id ORDER BY l.created_at DESC`;
+
+    const [loans] = await db.query(query, params);
+    const parsed = loans.map((loan) => ({
+      ...loan,
+      amount: toNumber(loan.amount),
+      paid_amount: toNumber(loan.paid_amount),
+      total_due: toNumber(loan.total_due),
+      remaining: toNumber(loan.remaining),
+      interest_rate: toNumber(loan.interest_rate),
+    }));
+    res.json(parsed);
+  } catch (error) {
+    console.error("getAllLoans error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Get loan statistics (admin only) ─────────────────────────────
+exports.getLoanStats = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user.id;
+
+    if (!(await isAdmin(userId, groupId))) {
+      return res.status(403).json({ message: "Only admins can view stats" });
+    }
+
+    // Total Loan Amount (sum of active + paid loans only)
+    const [totalAmountResult] = await db.query(
+      "SELECT COALESCE(SUM(amount), 0) as total_amount FROM loans WHERE group_id = ? AND status IN ('active', 'paid')",
+      [groupId],
+    );
+    const totalLoanAmount = toNumber(totalAmountResult[0]?.total_amount);
+
+    // Total loans count
+    const [totalResult] = await db.query(
+      "SELECT COUNT(*) as count FROM loans WHERE group_id = ?",
+      [groupId],
+    );
+    const totalLoans = toNumber(totalResult[0]?.count);
+
+    // Pending loans
+    const [pendingResult] = await db.query(
+      "SELECT COUNT(*) as count FROM loans WHERE group_id = ? AND status = 'pending'",
+      [groupId],
+    );
+    const pendingLoans = toNumber(pendingResult[0]?.count);
+
+    // Active loans and outstanding amount
+    const [activeResult] = await db.query(
+      `SELECT COUNT(*) as count, COALESCE(SUM(remaining), 0) as outstanding
+       FROM (
+         SELECT (l.amount + (l.amount * l.interest_rate / 100)) - COALESCE(SUM(r.amount_paid), 0) as remaining
+         FROM loans l
+         LEFT JOIN repayments r ON l.id = r.loan_id
+         WHERE l.group_id = ? AND l.status = 'active'
+         GROUP BY l.id
+       ) AS loan_balances`,
+      [groupId],
+    );
+    const activeLoans = toNumber(activeResult[0]?.count);
+    const outstandingAmount = toNumber(activeResult[0]?.outstanding);
+
+    // Paid loans (count)
+    const [paidResult] = await db.query(
+      "SELECT COUNT(*) as count FROM loans WHERE group_id = ? AND status = 'paid'",
+      [groupId],
+    );
+    const paidLoans = toNumber(paidResult[0]?.count);
+
+    // Paid Loan Amount = sum of all repayments (total amount repaid including interest)
+    const [repaidResult] = await db.query(
+      `SELECT COALESCE(SUM(r.amount_paid), 0) as total_repaid 
+       FROM repayments r 
+       JOIN loans l ON r.loan_id = l.id 
+       WHERE l.group_id = ?`,
+      [groupId],
+    );
+    const paidLoanAmount = toNumber(repaidResult[0]?.total_repaid);
+
+    // Rejected loans
+    const [rejectedResult] = await db.query(
+      "SELECT COUNT(*) as count FROM loans WHERE group_id = ? AND status = 'rejected'",
+      [groupId],
+    );
+    const rejectedLoans = toNumber(rejectedResult[0]?.count);
+
+    // Members with loans (distinct members who have at least one loan)
+    const [membersResult] = await db.query(
+      "SELECT COUNT(DISTINCT member_id) as count FROM loans WHERE group_id = ?",
+      [groupId],
+    );
+    const membersWithLoans = toNumber(membersResult[0]?.count);
+
+    res.json({
+      totalLoanAmount,
+      totalLoans,
+      pendingLoans,
+      activeLoans,
+      paidLoans,
+      paidLoanAmount, // now total repaid (including interest)
+      rejectedLoans,
+      outstandingAmount,
+      membersWithLoans,
+    });
+  } catch (error) {
+    console.error("getLoanStats error:", error);
     res.status(500).json({ message: error.message });
   }
 };
