@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiUsers,
@@ -14,50 +14,192 @@ import {
   FiX,
   FiAlertTriangle,
   FiPieChart,
+  FiPlay,
+  FiUserPlus,
+  FiUsers as FiGroup,
+  FiDollarSign as FiMoney,
+  FiFileText,
+  FiUserCheck,
+  FiUser,
+  FiCalendar,
+  FiClock,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 import landpagePhoto from "../assets/landpagephoto.jpeg";
+import adminVideo from "../assets/getstartedadmin.webm";
+import memberVideo from "../assets/getstartedmember.webm";
+
+// ─── Feature Images ─────────────────────────────────────────────────────
+import membersImg from "../assets/members.png";
+import savingsImg from "../assets/savings.png";
+import loansImg from "../assets/loans.png";
+import finesImg from "../assets/fines.png";
+import shareOutImg from "../assets/share-out.png";
+import reportsImg from "../assets/reports.png";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const adminVideoRef = useRef(null);
+  const memberVideoRef = useRef(null);
+  const [adminPlaying, setAdminPlaying] = useState(false);
+  const [memberPlaying, setMemberPlaying] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState(null);
 
+  // ─── Scroll to CTA ──────────────────────────────────────────────────
+  const scrollToCTA = () => {
+    const ctaElement = document.getElementById("cta-section");
+    if (ctaElement) {
+      ctaElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // ─── Features with actual images ─────────────────────────────────────
   const features = [
     {
-      icon: FiUsers,
       title: "Member Management",
       description:
         "Easily manage group members, track their profiles, savings, and loan history.",
+      image: membersImg,
     },
     {
-      icon: FiDollarSign,
       title: "Savings Tracking",
       description:
         "Record and monitor member savings with detailed reports and history.",
+      image: savingsImg,
     },
     {
-      icon: FiBookOpen,
       title: "Loan Management",
       description:
         "Request, approve, and manage loans with interest calculations and repayment tracking.",
+      image: loansImg,
     },
     {
-      icon: FiTrendingUp,
-      title: "Financial Reports",
-      description:
-        "Generate insightful reports on group funds, active loans, and member contributions.",
-    },
-    {
-      icon: FiAlertTriangle,
       title: "Fines Management",
       description:
         "Issue fines for rule violations, track payments, and maintain fine history.",
+      image: finesImg,
     },
     {
-      icon: FiPieChart,
       title: "Share-Out Management",
       description:
         "Automatically calculate member share-outs based on savings, interest, and fines.",
+      image: shareOutImg,
+    },
+    {
+      title: "Financial Reports",
+      description:
+        "Generate insightful reports on group funds, active loans, and member contributions.",
+      image: reportsImg,
     },
   ];
+
+  // ─── Admin Steps ──────────────────────────────────────────────────────
+  const adminSteps = [
+    {
+      icon: FiUserPlus,
+      title: "Create Account",
+      desc: "Sign up as an admin in seconds.",
+    },
+    {
+      icon: FiGroup,
+      title: "Create a Group",
+      desc: "Start your village banking group.",
+    },
+    {
+      icon: FiUsers,
+      title: "Add Members",
+      desc: "Invite by email or share the group code so they join.",
+    },
+    {
+      icon: FiCalendar,
+      title: "Create & Activate a Cycle",
+      desc: "Set the cycle dates and open it for savings and loans.",
+    },
+    {
+      icon: FiClock,
+      title: "Set Rules",
+      desc: "Define fines, meeting dates, and contribution rules.",
+    },
+  ];
+
+  // ─── Member Steps ──────────────────────────────────────────────────────
+  const memberSteps = [
+    {
+      icon: FiUserPlus,
+      title: "Create Account",
+      desc: "Sign up as a member in seconds.",
+    },
+    {
+      icon: FiGroup,
+      title: "Join a Group",
+      desc: "Use a join code to become a member.",
+    },
+    {
+      icon: FiDollarSign,
+      title: "Save Money",
+      desc: "Record your savings regularly.",
+    },
+    {
+      icon: FiBookOpen,
+      title: "Request a Loan",
+      desc: "Apply for a loan when you need funds.",
+    },
+    {
+      icon: FiPieChart,
+      title: "Receive Share-Out",
+      desc: "Get your share of group profits.",
+    },
+  ];
+
+  // ─── Video Handlers ──────────────────────────────────────────────────
+  const handleAdminMouseEnter = () => {
+    if (adminVideoRef.current) {
+      adminVideoRef.current.play();
+      setAdminPlaying(true);
+    }
+  };
+  const handleAdminMouseLeave = () => {
+    if (adminVideoRef.current) {
+      adminVideoRef.current.pause();
+      setAdminPlaying(false);
+    }
+  };
+  const toggleAdminPlay = () => {
+    if (adminVideoRef.current) {
+      if (adminPlaying) {
+        adminVideoRef.current.pause();
+        setAdminPlaying(false);
+      } else {
+        adminVideoRef.current.play();
+        setAdminPlaying(true);
+      }
+    }
+  };
+
+  const handleMemberMouseEnter = () => {
+    if (memberVideoRef.current) {
+      memberVideoRef.current.play();
+      setMemberPlaying(true);
+    }
+  };
+  const handleMemberMouseLeave = () => {
+    if (memberVideoRef.current) {
+      memberVideoRef.current.pause();
+      setMemberPlaying(false);
+    }
+  };
+  const toggleMemberPlay = () => {
+    if (memberVideoRef.current) {
+      if (memberPlaying) {
+        memberVideoRef.current.pause();
+        setMemberPlaying(false);
+      } else {
+        memberVideoRef.current.play();
+        setMemberPlaying(true);
+      }
+    }
+  };
 
   // ─── Pricing Plans ─────────────────────────────────────────────────────
   const plans = [
@@ -83,7 +225,6 @@ const LandingPage = () => {
         "Role Management",
         "Advanced Reports",
         "PDF/Excel Export",
-        "Multiple Admins",
       ],
       cta: "Start Basic Plan",
       popular: false,
@@ -96,37 +237,21 @@ const LandingPage = () => {
       badge: "Most Popular",
       memberLimit: "Up to 50 members",
       features: [
-        "Everything in Basic Plan",
+        "Savings Management",
+        "Loan Management",
+        "Fine Management",
+        "Share-Out Management",
+        "Member Dashboard",
+        "Admin Dashboard",
         "Activity Tracking",
         "Member Management",
-        "Role Management (Admin, Treasurer, Secretary, Member)",
+        "Role Management (Admin, Treasurer, Secretary)",
         "Advanced Reports",
-        "PDF Export",
-        "Excel Export",
-        "Multiple Admin Support",
+        "PDF/Excel Export",
       ],
       excluded: [],
       cta: "Choose Standard",
       popular: true,
-    },
-    {
-      id: "premium",
-      name: "Premium Plan",
-      price: "K300",
-      period: "/month",
-      badge: "Unlimited Members",
-      memberLimit: "Unlimited Members",
-      features: [
-        "Everything in Standard Plan",
-        "Unlimited Members",
-        "Priority Support",
-        "Advanced Analytics",
-        "Enhanced Audit Logs",
-        "Early Access to New Features",
-      ],
-      excluded: [],
-      cta: "Go Premium",
-      popular: false,
     },
   ];
 
@@ -150,9 +275,14 @@ const LandingPage = () => {
     },
   ];
 
+  // ─── FAQ Accordion Handlers ──────────────────────────────────────────
+  const toggleFaq = (index) => {
+    setExpandedFaq(expandedFaq === index ? null : index);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
-      {/* Hero Section with Background Image */}
+      {/* Hero Section */}
       <div
         className="relative bg-cover bg-center bg-no-repeat text-white min-h-[70vh] md:min-h-[80vh] flex items-center"
         style={{ backgroundImage: `url(${landpagePhoto})` }}
@@ -223,16 +353,135 @@ const LandingPage = () => {
             </h1>
             <p className="text-lg md:text-xl text-emerald-100 max-w-2xl mx-auto mb-8 drop-shadow-md">
               Designed for village banking groups to manage savings, loans,
-              repayments, fines, share‑outs and reports easily and
-              transparently.
+              repayments, fines, and share‑outs easily and transparently.
             </p>
             <div className="flex flex-row flex-wrap gap-4 justify-center">
               <button
-                onClick={() => navigate("/login")}
+                onClick={scrollToCTA}
                 className="border border-amber-400 hover:border-amber-300 hover:bg-amber-500/10 text-white px-8 py-3 rounded-lg font-semibold transition shadow-lg"
               >
                 Get Started
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── How It Works ──────────────────────────────────────────────── */}
+      <div className="py-20 md:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-800 tracking-tight">
+              How It Works
+            </h2>
+            <div className="w-24 h-1 bg-amber-400 mx-auto mt-4 rounded-full"></div>
+            <p className="text-gray-600 mt-4 max-w-2xl mx-auto text-lg">
+              A guide on how to get started with Umozi Savings using simple
+              steps for both admins and members.
+            </p>
+          </div>
+
+          {/* Admin Row */}
+          <div className="mb-16">
+            <div className="flex flex-col items-center md:items-start mb-8">
+              <h3 className="text-2xl font-bold text-gray-800">For Admins</h3>
+              <div className="w-16 h-1 bg-emerald-400 mt-2 rounded-full"></div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6 order-2 lg:order-1">
+                {adminSteps.map((step, idx) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={idx} className="flex items-start gap-4">
+                      <div className="bg-gradient-to-br from-emerald-100/50 to-emerald-200/50 rounded-full p-3 flex-shrink-0 mt-1">
+                        <Icon className="text-emerald-600" size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-800">
+                          {step.title}
+                        </h4>
+                        <p className="text-gray-600">{step.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="p-[1.5px] rounded-2xl bg-gradient-to-br from-emerald-300/70 to-emerald-500/70 order-1 lg:order-2">
+                <div
+                  className="relative group rounded-2xl overflow-hidden shadow-lg cursor-pointer"
+                  onMouseEnter={handleAdminMouseEnter}
+                  onMouseLeave={handleAdminMouseLeave}
+                  onClick={toggleAdminPlay}
+                >
+                  <video
+                    ref={adminVideoRef}
+                    src={adminVideo}
+                    className="w-full h-auto object-cover aspect-video"
+                    muted
+                    playsInline
+                    loop
+                  />
+                  {!adminPlaying && (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition">
+                      <div className="bg-white/90 rounded-full p-5 shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                        <FiPlay className="text-amber-500 text-3xl ml-1" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Member Row */}
+          <div>
+            <div className="flex flex-col items-center md:items-start mb-8">
+              <h3 className="text-2xl font-bold text-gray-800">For Members</h3>
+              <div className="w-16 h-1 bg-emerald-400 mt-2 rounded-full"></div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="p-[1.5px] rounded-2xl bg-gradient-to-br from-emerald-300/70 to-emerald-500/70 order-1">
+                <div
+                  className="relative group rounded-2xl overflow-hidden shadow-lg cursor-pointer"
+                  onMouseEnter={handleMemberMouseEnter}
+                  onMouseLeave={handleMemberMouseLeave}
+                  onClick={toggleMemberPlay}
+                >
+                  <video
+                    ref={memberVideoRef}
+                    src={memberVideo}
+                    className="w-full h-auto object-cover aspect-video"
+                    muted
+                    playsInline
+                    loop
+                  />
+                  {!memberPlaying && (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition">
+                      <div className="bg-white/90 rounded-full p-5 shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                        <FiPlay className="text-amber-500 text-3xl ml-1" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-6 order-2">
+                {memberSteps.map((step, idx) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={idx} className="flex items-start gap-4">
+                      <div className="bg-gradient-to-br from-emerald-100/50 to-emerald-200/50 rounded-full p-3 flex-shrink-0 mt-1">
+                        <Icon className="text-emerald-600" size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-800">
+                          {step.title}
+                        </h4>
+                        <p className="text-gray-600">{step.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -252,35 +501,38 @@ const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, idx) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={idx}
-                  className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col items-start"
-                >
-                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/70 p-4 rounded-xl mb-5 group-hover:scale-105 transition-transform duration-300">
-                    <Icon className="text-emerald-700" size={28} />
+            {features.map((feature, idx) => (
+              <div
+                key={idx}
+                className="p-[1.5px] rounded-2xl bg-gradient-to-t from-orange-300/10 to-amber-500/10 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+              >
+                <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
+                  <img
+                    src={feature.image}
+                    alt={feature.title}
+                    className="w-full h-48 object-cover object-top"
+                  />
+                  <div className="p-8 flex flex-col items-start flex-1">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600 leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {feature.description}
-                  </p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* ─── Pricing Section ───────────────────────────────────────────── */}
       <div className="py-16 md:py-24 bg-gradient-to-b from-white to-emerald-50/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
-              Monthly Plans
+              Subscription Plans
             </h2>
             <div className="w-24 h-1 bg-amber-400 mx-auto mt-4 rounded-full"></div>
             <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
@@ -289,72 +541,93 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className={`bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 flex flex-col ${
-                  plan.popular
-                    ? "ring-2 ring-amber-400 scale-105 md:scale-105 hover:scale-105"
-                    : "hover:scale-[1.02]"
-                }`}
-              >
-                {plan.badge && (
-                  <span
-                    className={`inline-block text-xs font-semibold px-3 py-1 rounded-full mb-2 self-start ${
-                      plan.popular
-                        ? "bg-amber-500 text-white"
-                        : "bg-emerald-100 text-emerald-800"
-                    }`}
-                  >
-                    {plan.badge}
-                  </span>
-                )}
-                <h3 className="text-xl font-bold text-gray-800">{plan.name}</h3>
-                <div className="mt-2 flex items-baseline">
-                  <span className="text-3xl font-extrabold text-gray-900">
-                    {plan.price}
-                  </span>
-                  <span className="ml-1 text-gray-500">{plan.period}</span>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{plan.memberLimit}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch justify-center">
+            {plans.map((plan) => {
+              const cardContent = (
+                <>
+                  {plan.badge && (
+                    <span
+                      className={`inline-block text-xs font-semibold px-3 py-1 rounded-full mb-2 self-start ${
+                        plan.popular
+                          ? "bg-amber-500 text-white"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {plan.badge}
+                    </span>
+                  )}
+                  <h3 className="text-xl font-bold text-gray-800">
+                    {plan.name}
+                  </h3>
+                  <div className="mt-2 flex items-baseline">
+                    <span className="text-3xl font-extrabold text-gray-900">
+                      {plan.price}
+                    </span>
+                    <span className="ml-1 text-gray-500">{plan.period}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {plan.memberLimit}
+                  </p>
 
-                <ul className="mt-4 space-y-2 flex-1">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm">
-                      <FiCheck className="text-emerald-600 mt-0.5 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                  {plan.excluded &&
-                    plan.excluded.map((excl, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start gap-2 text-sm text-gray-400"
-                      >
-                        <FiX className="text-gray-400 mt-0.5 flex-shrink-0" />
-                        <span>{excl}</span>
+                  <ul className="mt-4 space-y-2 flex-1">
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <FiCheck className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <span>{feature}</span>
                       </li>
                     ))}
-                </ul>
+                    {plan.excluded &&
+                      plan.excluded.map((excl, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-start gap-2 text-sm text-gray-400"
+                        >
+                          <FiX className="text-gray-400 mt-0.5 flex-shrink-0" />
+                          <span>{excl}</span>
+                        </li>
+                      ))}
+                  </ul>
 
-                <button
-                  onClick={() => navigate("/register")}
-                  className={`mt-6 w-full py-2 px-4 rounded-lg font-semibold transition ${
-                    plan.popular
-                      ? "bg-amber-500 hover:bg-amber-600 text-white"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                  }`}
+                  <button
+                    onClick={() => navigate("/register")}
+                    className={`mt-6 w-full py-2 px-4 rounded-lg font-semibold transition ${
+                      plan.popular
+                        ? "bg-amber-500 hover:bg-amber-600 text-white"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    }`}
+                  >
+                    {plan.cta}
+                  </button>
+                </>
+              );
+
+              if (plan.popular) {
+                return (
+                  <div
+                    key={plan.id}
+                    className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 flex flex-col ring-2 ring-amber-400 hover:scale-[1.02]"
+                  >
+                    {cardContent}
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={plan.id}
+                  className="p-[1.5px] rounded-2xl bg-gradient-to-br from-emerald-300/70 to-emerald-500/70 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
                 >
-                  {plan.cta}
-                </button>
-              </div>
-            ))}
+                  <div className="bg-white rounded-2xl p-6 shadow-lg flex flex-col h-full">
+                    {cardContent}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* ─── FAQ Section ────────────────────────────────────────────────── */}
+      {/* ─── FAQ Section – Two Columns ────────────────────────────────── */}
       <div className="py-16 md:py-24 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -367,33 +640,45 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {faqs.map((faq, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200"
-              >
-                <div className="flex items-start gap-4">
-                  <span className="text-amber-500 font-bold text-lg mt-0.5 select-none">
-                    Q.
-                  </span>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+            {faqs.map((faq, idx) => {
+              const isOpen = expandedFaq === idx;
+              return (
+                <div key={idx} className="border-b border-gray-200 pb-4">
+                  <button
+                    className="flex justify-between items-center w-full text-left group"
+                    onClick={() => toggleFaq(idx)}
+                  >
+                    <h3 className="text-lg font-semibold text-gray-800 group-hover:text-emerald-700 transition-colors duration-200">
                       {faq.q}
                     </h3>
-                    <p className="mt-2 text-gray-600 leading-relaxed">
-                      {faq.a}
-                    </p>
+                    <span className="ml-4 flex-shrink-0 text-amber-500 transition-transform duration-200">
+                      {isOpen ? (
+                        <FiChevronUp size={22} />
+                      ) : (
+                        <FiChevronDown size={22} />
+                      )}
+                    </span>
+                  </button>
+                  <div
+                    className={`mt-2 text-gray-600 leading-relaxed overflow-hidden transition-all duration-300 ${
+                      isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <p className="pb-2">{faq.a}</p>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* CTA Section */}
-      <div className="py-16 md:py-24 bg-gradient-to-b from-emerald-50 to-white">
+      {/* ─── CTA Section ────────────────────────────────────────────────── */}
+      <div
+        id="cta-section"
+        className="py-16 md:py-24 bg-gradient-to-b from-emerald-50 to-white"
+      >
         <div className="max-w-md mx-auto px-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-3">
@@ -401,7 +686,7 @@ const LandingPage = () => {
             </h2>
             <p className="text-gray-700 mb-6">
               Create an account, join a group or create your own and start
-              managing savings, loans, fines, share‑outs and reports with ease.
+              managing savings, loans, fines, and share‑outs with ease.
             </p>
             <div className="flex flex-row gap-3 justify-center">
               <button
