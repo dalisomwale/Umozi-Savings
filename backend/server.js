@@ -1,45 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-/* ========================
-   CORS CONFIG (PRODUCTION)
-======================== */
-const allowedOrigins = [
-  "https://www.umozisavings.com",
-  "https://umozisavings.com",
-  "http://localhost:3000",
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("CORS blocked for this origin"));
-      }
-    },
-    credentials: true,
-  }),
-);
-
-/* ========================
-   MIDDLEWARE
-======================== */
+// Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-/* ========================
-   ROUTES
-======================== */
-
-// Import routes
+// Import route files
 const authRoutes = require("./routes/authRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const memberRoutes = require("./routes/memberRoutes");
@@ -59,49 +32,19 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/fines", fineRoutes);
 app.use("/api/share-out", shareOutRoutes);
 
-/* ========================
-   HEALTH CHECK
-======================== */
-app.get("/", (req, res) => {
-  res.json({
-    message: "Umozi Savings API is running",
-    status: "OK",
-    timestamp: new Date().toISOString(),
-  });
-});
-
+// Health check
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-  });
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-/* ========================
-   HANDLE INVALID ROUTES
-======================== */
-app.use("*", (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
+// Serve static assets if in production
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/build")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
   });
-});
+}
 
-/* ========================
-   GLOBAL ERROR HANDLER
-======================== */
-app.use((err, req, res, next) => {
-  console.error("Server Error:", err.message);
-
-  res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-  });
-});
-
-/* ========================
-   START SERVER
-======================== */
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
