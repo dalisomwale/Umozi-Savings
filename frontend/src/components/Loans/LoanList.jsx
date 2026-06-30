@@ -627,7 +627,7 @@ const LoanList = () => {
   return (
     <div className="max-w-7xl mx-auto px-2 space-y-5">
       {/* Conditionally render GroupHeader with custom title on mobile */}
-      {isMobile ? <GroupHeader title="Loan Management" /> : <HeroHeader />}
+      {isMobile ? <GroupHeader title="Manage Loans" /> : <HeroHeader />}
 
       {/* Stats Cards – 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
